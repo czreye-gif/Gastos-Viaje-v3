@@ -1069,30 +1069,28 @@
         // --- PREVENCIÓN XSS ---
         function esc(str) { return String(str || '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
 
-        // --- FILE SYSTEM ACCESS API (Guardado Directo a Archivo) ---
-        let fileHandle;
+        // --- OPFS FILE SYSTEM (Guardado Interno Automático) ---
+        let fileHandle = null;
 
-        async function initFileSaving(isNew) {
+        function getFilenameStr() {
+            const meses = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"];
+            const hoy = new Date();
+            return `${data.viaje}_${meses[hoy.getMonth()]}_${hoy.getFullYear()}.json`.replace(/\s+/g, '_');
+        }
+
+        async function initFileSaving(isNew, filenameToLoad = null) {
             try {
+                const root = await navigator.storage.getDirectory();
+
                 if (isNew) {
-                    const options = {
-                        suggestedName: `Gastos_${data.viaje || 'Nuevo'}.json`,
-                        types: [{
-                            description: 'JSON Files',
-                            accept: { 'application/json': ['.json'] },
-                        }],
-                    };
-                    fileHandle = await window.showSaveFilePicker(options);
-                } else {
-                    [fileHandle] = await window.showOpenFilePicker({
-                        types: [{
-                            description: 'JSON Files',
-                            accept: { 'application/json': ['.json'] },
-                        }],
-                    });
+                    const fileName = getFilenameStr();
+                    fileHandle = await root.getFileHandle(fileName, { create: true });
+                } else if (filenameToLoad) {
+                    fileHandle = await root.getFileHandle(filenameToLoad, { create: false });
                 }
             } catch (error) {
-                console.error(error);
+                console.error("Error OPFS:", error);
+                alert("Error interno: No se pudo crear el archivo automático en la memoria del navegador.");
                 return false;
             }
             return true;
