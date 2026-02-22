@@ -742,12 +742,9 @@
 
     <!-- NAVBAR -->
     <div class="navbar">
-        <button class="nav-btn" onclick="triggerImport()" title="Abrir Respaldo">
-            <!-- Icono Carpeta (Abrir/Restaurar) -->
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round">
-                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-            </svg>
+        <button class="nav-btn" onclick="openOpfsRecoveryModal()" title="Mis Viajes"
+            style="font-size: 22px; padding-bottom: 5px;">
+            📂
         </button>
         <div class="nav-title" id="nav-title" style="flex-grow: 1; text-align: center; padding-right: 48px;">Mis Gastos
         </div>
@@ -758,11 +755,17 @@
         <h1 style="text-align:center; font-size:28px; font-weight:700; margin:40px 0 10px;">Nuevo Viaje</h1>
         <p style="text-align:center; color:var(--ios-gray-text); margin-bottom:40px;">Configura tu grupo.</p>
 
-        <!-- Botón para Recuperar Archivos OPFS -->
-        <button class="btn-large" onclick="openOpfsRecoveryModal()"
-            style="background:#5AC8FA; color:white; margin-bottom: 30px;">
-            <span style="font-size:1.2rem; margin-right:5px;">📂</span> Recuperar Viajes Guardados
-        </button>
+        <!-- Botones de Gestión Histórica y OPFS -->
+        <div style="display:flex; gap:10px; margin-bottom: 30px;">
+            <button class="btn-large" onclick="openOpfsRecoveryModal()"
+                style="background:#5AC8FA; color:white; flex:1; font-size:15px; padding:12px 5px;">
+                <span style="font-size:1.4rem; display:block; margin-bottom:4px;">📂</span><br>Abrir Guardados
+            </button>
+            <button class="btn-large" onclick="document.getElementById('importFile').click()"
+                style="background:#E5E5EA; color:var(--ios-blue); flex:1; font-size:15px; padding:12px 5px;">
+                <span style="font-size:1.4rem; display:block; margin-bottom:4px;">📥</span><br>Subir Historial
+            </button>
+        </div>
 
         <div class="ios-list-group">
             <div class="ios-cell">
@@ -1030,37 +1033,27 @@
 
     <!-- MODAL RECUPERACIÓN OPFS -->
     <div class="modal-backdrop" id="modal-opfs-recovery">
-        <div class="sheet" style="height:60vh;">
+        <div class="sheet" style="height:70vh; display:flex; flex-direction:column;">
             <div class="sheet-header">
-                <span class="sheet-title">Tus Viajes Guardados</span>
+                <span class="sheet-title">Tus Viajes</span>
                 <button class="sheet-close" onclick="closeModal('modal-opfs-recovery')">Cerrar</button>
             </div>
-            <div style="padding:20px; text-align:center; color:#666; font-size:14px; margin-bottom:10px;">
-                Toca un archivo para continuar donde te quedaste:
+            <div style="padding:15px; text-align:center; color:#666; font-size:14px;">
+                Toca un archivo para abrirlo o sube un viaje histórico:
             </div>
-            <div id="opfs-files-list" style="padding:0 20px 20px; flex:1; overflow-y:auto;">
+            <div id="opfs-files-list" style="padding:0 20px; flex:1; overflow-y:auto;">
                 <!-- Lista de archivos recuperados -->
             </div>
-        </div>
-    </div>
-
-    <!-- MODAL ADVERTENCIA IMPORTAR -->
-    <div class="modal-backdrop" id="modal-import-warning">
-        <div class="import-alert-box">
-            <div class="import-alert-title">⚠️ Sobrescribir Datos</div>
-            <div class="import-alert-msg">
-                Al cargar un respaldo, se borrarán <strong>TODOS</strong> los datos actuales y serán
-                reemplazados.<br><br>
-                Esta acción no se puede deshacer.
-            </div>
-            <div class="import-alert-actions">
-                <button class="btn-alert" onclick="closeModal('modal-import-warning')">Cancelar</button>
-                <button class="btn-alert btn-alert-destructive" onclick="continueImport()">Sobrescribir</button>
+            <div style="padding: 15px 20px 30px; border-top: 1px solid #E5E5EA; background: #fff;">
+                <button class="btn-large" onclick="document.getElementById('importFile').click()"
+                    style="background:#E5E5EA; color:var(--ios-blue); font-size:16px;">
+                    📥 Subir Historial (.json)
+                </button>
             </div>
         </div>
     </div>
 
-    <input type="file" id="importFile" class="hidden" onchange="doImport(this)">
+    <input type="file" id="importFile" class="hidden" accept=".json" onchange="doImport(this)">
 
     <script>
         // --- ESTADO Y CONFIG ---
@@ -1771,10 +1764,7 @@
             }
         }
 
-        async function continueImport() {
-            document.getElementById('modal-import-warning').style.display = 'none';
-            document.getElementById('importFile').click();
-        }
+        // The triggerImport and continueImport functions are no longer needed, they were explicitly handled by the UI.
 
         async function doImport(inp) {
             const f = inp.files[0];
