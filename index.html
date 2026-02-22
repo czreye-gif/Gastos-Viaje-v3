@@ -758,6 +758,12 @@
         <h1 style="text-align:center; font-size:28px; font-weight:700; margin:40px 0 10px;">Nuevo Viaje</h1>
         <p style="text-align:center; color:var(--ios-gray-text); margin-bottom:40px;">Configura tu grupo.</p>
 
+        <!-- Botón para Recuperar Archivos OPFS -->
+        <button class="btn-large" onclick="openOpfsRecoveryModal()"
+            style="background:#5AC8FA; color:white; margin-bottom: 30px;">
+            <span style="font-size:1.2rem; margin-right:5px;">📂</span> Recuperar Viajes Guardados
+        </button>
+
         <div class="ios-list-group">
             <div class="ios-cell">
                 <span class="cell-label">Destino</span>
@@ -1022,6 +1028,22 @@
         </div>
     </div>
 
+    <!-- MODAL RECUPERACIÓN OPFS -->
+    <div class="modal-backdrop" id="modal-opfs-recovery">
+        <div class="sheet" style="height:60vh;">
+            <div class="sheet-header">
+                <span class="sheet-title">Tus Viajes Guardados</span>
+                <button class="sheet-close" onclick="closeModal('modal-opfs-recovery')">Cerrar</button>
+            </div>
+            <div style="padding:20px; text-align:center; color:#666; font-size:14px; margin-bottom:10px;">
+                Toca un archivo para continuar donde te quedaste:
+            </div>
+            <div id="opfs-files-list" style="padding:0 20px 20px; flex:1; overflow-y:auto;">
+                <!-- Lista de archivos recuperados -->
+            </div>
+        </div>
+    </div>
+
     <!-- MODAL ADVERTENCIA IMPORTAR -->
     <div class="modal-backdrop" id="modal-import-warning">
         <div class="import-alert-box">
@@ -1160,7 +1182,73 @@
             "Tamaulipas": "Tamps.", "Tlaxcala": "Tlax.", "Veracruz": "Ver.", "Yucatán": "Yuc.", "Zacatecas": "Zac."
         };
 
-        // Helper OPCIONAL para saber qué cargar al inicio
+        // Helper para listar archivos OPFS y mostrarlos al usuario
+        async function openOpfsRecoveryModal() {
+            try {
+                const root = await navigator.storage.getDirectory();
+                let files = [];
+                for await (const [name, handle] of root.entries()) {
+                    if (handle.kind === 'file' && name.endsWith('.json')) {
+                        const file = await handle.getFile();
+                        files.push({ name: name, date: new Date(file.lastModified) });
+                    }
+                }
+
+                const listContainer = document.getElementById("opfs-files-list");
+
+                if (files.length === 0) {
+                    listContainer.innerHTML = "<div style='text-align:center; padding:20px; color:#999;'>No hay viajes guardados en este dispositivo.</div>";
+                } else {
+                    // Ordenar más recientes primero
+                    files.sort((a, b) => b.date - a.date);
+
+                    let html = "";
+                    files.forEach(f => {
+                        html += `
+                        <div style="background:#F2F2F7; padding:15px; border-radius:12px; margin-bottom:10px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="recoverOpfsFile('${f.name}')">
+                            <div>
+                                <div style="font-weight:bold; color:var(--ios-blue); font-size:16px; margin-bottom:4px;">${f.name.replace('.json', '')}</div>
+                                <div style="font-size:12px; color:#8E8E93;">Editado: ${f.date.toLocaleString()}</div>
+                            </div>
+                            <div style="color:#d1d1d6; font-size:20px;">➔</div>
+                        </div>`;
+                    });
+                    listContainer.innerHTML = html;
+                }
+
+                document.getElementById('modal-opfs-recovery').style.display = 'flex';
+            } catch (e) {
+                console.error("Error leyendo OPFS:", e);
+                toast("No se pudo acceder a la memoria interna del navegador.");
+            }
+        }
+
+        // Cargar archivo específico tocado por el usuario
+        async function recoverOpfsFile(fileName) {
+            closeModal('modal-opfs-recovery');
+            try {
+                const root = await navigator.storage.getDirectory();
+                const handle = await root.getFileHandle(fileName);
+                fileHandle = handle;
+
+                const file = await handle.getFile();
+                const contents = await file.text();
+                const json = JSON.parse(contents);
+
+                if (json && json.viaje) {
+                    data = json;
+                    initMain();
+                    toast("Viaje recuperado con éxito");
+                } else {
+                    alert("El archivo está corrupto o vacío.");
+                }
+            } catch (error) {
+                console.error("Error al cargar viaje específico:", error);
+                alert("Hubo un error al intentar abrir el archivo.");
+            }
+        }
+
+        // Helper OPCIONAL para saber qué cargar al inicio (Autoload)
         async function loadMostRecentOPFSFile() {
             try {
                 const root = await navigator.storage.getDirectory();
