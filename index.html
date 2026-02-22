@@ -1,0 +1,1759 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport"
+        content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>Gastos</title>
+
+    <!-- Librerías Externas -->
+    <script src="html2canvas.min.js"></script>
+
+    <style>
+        /* =========================================
+           DISEÑO IOS NATIVO + TICKET CLÁSICO
+           ========================================= */
+        :root {
+            --ios-bg: #F2F2F7;
+            --ios-card: #FFFFFF;
+            --ios-blue: #007AFF;
+            --ios-green: #34C759;
+            --ios-red: #FF3B30;
+            --ios-gray-text: #8E8E93;
+            --ios-separator: #C6C6C8;
+            --ios-search-bg: #E3E3E8;
+
+            --safe-top: env(safe-area-inset-top);
+            --safe-bottom: env(safe-area-inset-bottom);
+        }
+
+        * {
+            box-sizing: border-box;
+            -webkit-tap-highlight-color: transparent;
+            outline: none;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+            background-color: var(--ios-bg);
+            margin: 0;
+            padding: 0;
+            color: #000;
+            font-size: 17px;
+            padding-bottom: calc(20px + var(--safe-bottom));
+            user-select: none;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* --- NAVBAR --- */
+        .navbar {
+            background: rgba(249, 249, 249, 0.94);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            height: calc(44px + var(--safe-top));
+            padding-top: var(--safe-top);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding-left: 16px;
+            padding-right: 16px;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.3);
+        }
+
+        .nav-title {
+            font-weight: 600;
+            font-size: 17px;
+        }
+
+        .nav-btn {
+            background: none;
+            border: none;
+            color: var(--ios-blue);
+            font-size: 17px;
+            padding: 0;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+        }
+
+        .nav-btn svg {
+            width: 22px;
+            height: 22px;
+            stroke: currentColor;
+            stroke-width: 2;
+        }
+
+        /* --- LISTAS IOS (INSET GROUPED) --- */
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px 16px;
+        }
+
+        .ios-list-title {
+            text-transform: uppercase;
+            font-size: 13px;
+            color: var(--ios-gray-text);
+            margin: 24px 0 8px 16px;
+            font-weight: 400;
+            letter-spacing: -0.1px;
+        }
+
+        .ios-list-group {
+            background: var(--ios-card);
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 20px;
+        }
+
+        .ios-cell {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 11px 16px;
+            background: var(--ios-card);
+            min-height: 44px;
+            position: relative;
+        }
+
+        .ios-cell:not(:last-child)::after {
+            content: '';
+            position: absolute;
+            bottom: 0;
+            right: 0;
+            height: 0.5px;
+            background: var(--ios-separator);
+            left: 16px;
+        }
+
+        .ios-cell:active {
+            background-color: #E5E5EA;
+        }
+
+        .cell-label {
+            font-size: 17px;
+            color: #000;
+            flex-shrink: 0;
+            margin-right: 10px;
+        }
+
+        .cell-value {
+            font-size: 17px;
+            color: var(--ios-gray-text);
+            flex: 1;
+            text-align: right;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .cell-input {
+            border: none;
+            background: transparent;
+            font-size: 17px;
+            text-align: right;
+            width: 100%;
+            color: var(--ios-blue);
+            padding: 0;
+            margin: 0;
+            font-family: inherit;
+        }
+
+        /* --- BOTONES --- */
+        .btn-large {
+            background: var(--ios-blue);
+            color: white;
+            width: 100%;
+            border: none;
+            border-radius: 12px;
+            padding: 14px;
+            font-size: 17px;
+            font-weight: 600;
+            margin-bottom: 12px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-large:active {
+            opacity: 0.7;
+        }
+
+        .btn-secondary {
+            background: #E5E5EA;
+            color: #000;
+        }
+
+        .btn-destructive {
+            background: var(--ios-card);
+            color: var(--ios-red);
+        }
+
+        /* --- DISPLAY MONTO --- */
+        .amount-display {
+            font-size: 56px;
+            font-weight: 300;
+            text-align: right;
+            padding: 20px 0;
+            width: 100%;
+            border: none;
+            background: transparent;
+            color: #000;
+            letter-spacing: -1.5px;
+        }
+
+        /* --- TECLADO --- */
+        .keypad {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 1px;
+            background: var(--ios-separator);
+            border-radius: 12px;
+            overflow: hidden;
+            margin-bottom: 24px;
+        }
+
+        .key {
+            background: #fff;
+            border: none;
+            padding: 16px;
+            font-size: 24px;
+            font-weight: 400;
+            color: #000;
+        }
+
+        .key:active {
+            background: #D1D1D6;
+        }
+
+        /* --- LISTA GASTOS --- */
+        .tx-row {
+            padding: 12px 16px;
+            background: #fff;
+            display: flex;
+            align-items: center;
+            border-bottom: 0.5px solid #E5E5EA;
+            cursor: pointer;
+        }
+
+        .tx-icon {
+            width: 36px;
+            height: 36px;
+            border-radius: 18px;
+            background: #F2F2F7;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            margin-right: 12px;
+        }
+
+        .tx-details {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .tx-title {
+            font-weight: 500;
+            font-size: 17px;
+            margin-bottom: 2px;
+        }
+
+        .tx-meta {
+            font-size: 14px;
+            color: var(--ios-gray-text);
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+            line-height: 1.3;
+        }
+
+        .tx-location-badge {
+            font-size: 11px;
+            color: var(--ios-blue);
+            font-weight: 500;
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            margin-top: 1px;
+        }
+
+        .tx-amount {
+            font-weight: 600;
+            font-size: 17px;
+        }
+
+        /* --- MODALES --- */
+        .modal-backdrop {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.6);
+            z-index: 2000;
+            display: none;
+            align-items: flex-end;
+            backdrop-filter: blur(2px);
+        }
+
+        .sheet {
+            background: #F2F2F7;
+            width: 100%;
+            max-height: 94vh;
+            border-radius: 12px 12px 0 0;
+            overflow-y: auto;
+            animation: slideUp 0.3s cubic-bezier(0.33, 1, 0.68, 1);
+            display: flex;
+            flex-direction: column;
+        }
+
+        @keyframes slideUp {
+            from {
+                transform: translateY(100%);
+            }
+
+            to {
+                transform: translateY(0);
+            }
+        }
+
+        .sheet-header {
+            background: rgba(249, 249, 249, 0.94);
+            backdrop-filter: blur(20px);
+            padding: 16px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            position: sticky;
+            top: 0;
+            z-index: 10;
+            border-bottom: 0.5px solid rgba(0, 0, 0, 0.3);
+        }
+
+        .sheet-title {
+            font-weight: 600;
+            font-size: 17px;
+        }
+
+        .sheet-close {
+            color: var(--ios-blue);
+            font-weight: 600;
+            background: none;
+            border: none;
+            font-size: 17px;
+            padding: 0;
+        }
+
+        /* --- ESTILOS DEL TICKET RECUPERADO (COLORES ADAPTADOS A IOS BLUE) --- */
+        #ticket-visual {
+            background: linear-gradient(135deg, #ffffff 0%, #f9f9f9 100%);
+            width: 100%;
+            max-width: 380px;
+            border-radius: 20px;
+            padding: 0;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #e0e0e0;
+            margin: 0 auto 20px auto;
+        }
+
+        .ticket-header {
+            /* Adaptado al Azul iOS */
+            background: linear-gradient(135deg, var(--ios-blue) 0%, #005ecb 100%);
+            color: white;
+            padding: 20px 15px;
+            text-align: center;
+        }
+
+        .ticket-header h2 {
+            margin: 0;
+            font-size: 2rem;
+            letter-spacing: 1px;
+        }
+
+        .ticket-header p {
+            margin: 5px 0 0;
+            opacity: 0.8;
+            font-size: 1rem;
+        }
+
+        .ticket-body {
+            padding: 15px;
+        }
+
+        .ticket-total-section {
+            text-align: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 2px dashed #ddd;
+        }
+
+        .ticket-total-amount {
+            font-size: 2.8rem;
+            font-weight: 800;
+            color: #333;
+            margin: 5px 0;
+        }
+
+        .ticket-per-person {
+            background: #e0f2f1;
+            color: #00695c;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 1rem;
+            display: inline-block;
+        }
+
+        .ticket-stats-section {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+            background: #fcfcfc;
+            border-radius: 12px;
+            padding: 10px;
+            border: 1px solid #eee;
+        }
+
+        .ticket-chart-container {
+            width: 70px;
+            height: 70px;
+            flex-shrink: 0;
+            margin-right: 15px;
+            position: relative;
+        }
+
+        .ticket-chart-svg {
+            width: 100%;
+            height: 100%;
+            transform: rotate(-90deg);
+        }
+
+        .ticket-categories-list {
+            flex: 1;
+            font-size: 0.9rem;
+        }
+
+        .ticket-cat-row {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 4px;
+            color: #555;
+        }
+
+        .ticket-cat-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            margin-right: 6px;
+            display: inline-block;
+        }
+
+        .debt-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            background: #fff;
+            border: 1px solid #eee;
+            padding: 10px;
+            border-radius: 10px;
+            margin-bottom: 8px;
+        }
+
+        .debt-amount {
+            font-weight: 800;
+            color: var(--ios-red);
+            font-size: 1.1rem;
+        }
+
+        .ticket-log-section {
+            margin-top: 20px;
+            border-top: 2px dashed #ddd;
+            padding-top: 15px;
+        }
+
+        .log-table {
+            width: 100%;
+            font-size: 0.85rem;
+            border-collapse: collapse;
+            font-family: monospace, sans-serif;
+        }
+
+        .log-table td {
+            padding: 8px 6px;
+            border-bottom: 1px solid #f9f9f9;
+            vertical-align: top;
+        }
+
+        /* Efecto Zebra */
+        .log-table tr:nth-child(even) {
+            background-color: #f7f9fc;
+        }
+
+        .log-desc span {
+            display: block;
+            color: #666;
+            font-size: 0.8rem;
+            margin-top: 2px;
+        }
+
+        .log-location-text {
+            font-size: 0.7rem;
+            color: var(--ios-blue);
+            margin-top: 0;
+            line-height: 1.1;
+            display: block;
+        }
+
+        .log-participant-header {
+            background: #f0f2f5;
+            padding: 8px;
+            font-weight: bold;
+            color: #004c3f;
+            border-bottom: 1px solid #e0e0e0;
+            margin-top: 15px;
+            font-size: 0.9rem;
+        }
+
+        .ticket-footer {
+            background: #f4f6f8;
+            padding: 12px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #999;
+            border-top: 1px solid #eee;
+            font-family: monospace;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+        }
+
+        /* Botonera moderna del ticket */
+        .modern-action-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            max-width: 380px;
+            margin: 0 auto;
+        }
+
+        .btn-modern-close {
+            width: 50px;
+            background: #e0e0e0;
+            color: #333;
+            font-size: 1.5rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            flex-shrink: 0;
+            min-height: 50px;
+        }
+
+        .btn-modern-save {
+            flex: 1;
+            background: var(--ios-blue);
+            color: white;
+            font-weight: bold;
+            border-radius: 12px;
+            border: none;
+            cursor: pointer;
+            font-size: 1rem;
+            min-height: 50px;
+        }
+
+        .ranking-title {
+            font-size: 1.1rem;
+            color: #555;
+            font-weight: 600;
+            margin-bottom: 10px;
+            text-align: center;
+            padding-left: 5px;
+        }
+
+        /* Estilos Alerta Importación */
+        .import-alert-box {
+            background: white;
+            border-radius: 14px;
+            padding: 25px 20px;
+            width: 80%;
+            max-width: 300px;
+            text-align: center;
+            box-shadow: 0 5px 20px rgba(0, 0, 0, 0.2);
+            margin: auto;
+            margin-bottom: 40%;
+            /* Un poco arriba */
+        }
+
+        .import-alert-title {
+            font-weight: 700;
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #000;
+        }
+
+        .import-alert-msg {
+            font-size: 14px;
+            color: #666;
+            margin-bottom: 20px;
+            line-height: 1.4;
+        }
+
+        .import-alert-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-alert {
+            flex: 1;
+            padding: 10px;
+            border-radius: 10px;
+            border: none;
+            font-weight: 600;
+            font-size: 15px;
+            background: #F2F2F7;
+            color: var(--ios-blue);
+            cursor: pointer;
+        }
+
+        .btn-alert-destructive {
+            color: var(--ios-red);
+        }
+
+        /* NUEVO Buscador de Ubicación */
+        .loc-header-block {
+            background: #fff;
+            padding: 16px;
+            border-bottom: 1px solid #E5E5EA;
+        }
+
+        .loc-input-main {
+            width: 100%;
+            border: 1px solid #E5E5EA;
+            background: #F2F2F7;
+            padding: 12px;
+            border-radius: 10px;
+            font-size: 16px;
+            margin-bottom: 15px;
+            outline: none;
+            color: #000;
+        }
+
+        .loc-input-main:focus {
+            border-color: var(--ios-blue);
+            background: #fff;
+        }
+
+        .loc-search-wrapper {
+            display: flex;
+            align-items: center;
+            background: #E3E3E8;
+            border-radius: 10px;
+            padding: 8px 12px;
+        }
+
+        .loc-search-field {
+            border: none;
+            background: transparent;
+            width: 100%;
+            font-size: 16px;
+            outline: none;
+            margin-left: 8px;
+            color: #000;
+        }
+
+        .loc-results-list {
+            flex: 1;
+            overflow-y: auto;
+            background: #fff;
+        }
+
+        .loc-item {
+            padding: 12px 16px;
+            border-bottom: 1px solid #F2F2F7;
+            cursor: pointer;
+        }
+
+        .loc-item:active {
+            background: #F2F2F7;
+        }
+
+        .loc-item-title {
+            font-weight: 500;
+            font-size: 16px;
+            color: #000;
+        }
+
+        .loc-item-subtitle {
+            font-size: 13px;
+            color: #8E8E93;
+            margin-top: 2px;
+        }
+
+        /* Utilidades */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-blue {
+            color: var(--ios-blue) !important;
+        }
+    </style>
+</head>
+
+<body>
+
+    <!-- Loader -->
+    <div id="loader"
+        style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(255,255,255,0.8); z-index:9999; justify-content:center; align-items:center;">
+        <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#8E8E93" stroke-width="3"
+            stroke-linecap="round" stroke-linejoin="round" style="animation:spin 1s linear infinite">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"></path>
+        </svg>
+        <style>
+            @keyframes spin {
+                100% {
+                    transform: rotate(360deg);
+                }
+            }
+        </style>
+    </div>
+
+    <!-- TOAST -->
+    <div id="toast"
+        style="position:fixed; top:60px; left:50%; transform:translateX(-50%) translateY(-10px); background:rgba(255,255,255,0.9); color:black; padding:12px 24px; border-radius:30px; font-size:15px; opacity:0; transition:0.3s; pointer-events:none; z-index:9999; font-weight:500; box-shadow: 0 5px 20px rgba(0,0,0,0.15); backdrop-filter:blur(10px);">
+        Notificación</div>
+
+    <!-- NAVBAR -->
+    <div class="navbar">
+        <button class="nav-btn" onclick="triggerImport()" title="Abrir Respaldo">
+            <!-- Icono Carpeta (Abrir/Restaurar) -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+            </svg>
+        </button>
+        <div class="nav-title" id="nav-title">Mis Gastos</div>
+        <button class="nav-btn" onclick="exportarBackup()" title="Guardar Respaldo">
+            <!-- Icono Disquete (Guardar) -->
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
+                <polyline points="17 21 17 13 7 13 7 21"></polyline>
+                <polyline points="7 3 7 8 15 8"></polyline>
+            </svg>
+        </button>
+    </div>
+
+    <!-- PANTALLA SETUP -->
+    <div id="view-setup" class="container">
+        <h1 style="text-align:center; font-size:28px; font-weight:700; margin:40px 0 10px;">Nuevo Viaje</h1>
+        <p style="text-align:center; color:var(--ios-gray-text); margin-bottom:40px;">Configura tu grupo.</p>
+
+        <div class="ios-list-group">
+            <div class="ios-cell">
+                <span class="cell-label">Destino</span>
+                <input type="text" id="setupDestino" class="cell-input" placeholder="Ej: Cancún">
+            </div>
+        </div>
+
+        <div class="ios-list-title">PARTICIPANTES</div>
+        <div class="ios-list-group">
+            <div class="ios-cell">
+                <input type="text" id="setupViajero" class="cell-input" style="text-align:left;" placeholder="Nombre..."
+                    onkeypress="if(event.key==='Enter') addSetupPayer()">
+                <button onclick="addSetupPayer()"
+                    style="background:var(--ios-blue); color:white; border:none; width:28px; height:28px; border-radius:14px; margin-left:10px; font-size:18px;">+</button>
+            </div>
+            <div id="setup-list-container" style="background:#fff;"></div>
+        </div>
+
+        <button class="btn-large" onclick="crearViaje()">Crear Viaje</button>
+    </div>
+
+    <!-- PANTALLA PRINCIPAL -->
+    <div id="view-main" class="container hidden">
+
+        <input type="text" id="montoDisplay" class="amount-display" placeholder="$0" readonly onclick="this.blur()">
+
+        <div class="keypad">
+            <button class="key" onclick="kp('7')">7</button><button class="key" onclick="kp('8')">8</button><button
+                class="key" onclick="kp('9')">9</button>
+            <button class="key" onclick="kp('4')">4</button><button class="key" onclick="kp('5')">5</button><button
+                class="key" onclick="kp('6')">6</button>
+            <button class="key" onclick="kp('1')">1</button><button class="key" onclick="kp('2')">2</button><button
+                class="key" onclick="kp('3')">3</button>
+            <button class="key" onclick="kp('.')">.</button><button class="key" onclick="kp('0')">0</button><button
+                class="key" onclick="kp('DEL')">⌫</button>
+        </div>
+
+        <div class="ios-list-group">
+            <div class="ios-cell" onclick="openPayerModal('new')">
+                <span class="cell-label">Pagador</span>
+                <span class="cell-value text-blue" id="lbl-payer">Seleccionar</span>
+            </div>
+            <div class="ios-cell" onclick="openCatModal('new')">
+                <span class="cell-label">Categoría</span>
+                <span class="cell-value text-blue" id="lbl-cat">Seleccionar</span>
+            </div>
+            <div class="ios-cell">
+                <span class="cell-label">Nota</span>
+                <input type="text" id="txt-nota" class="cell-input" placeholder="Opcional">
+            </div>
+            <div class="ios-cell">
+                <span class="cell-label">Fecha</span>
+                <input type="date" id="txt-fecha" class="cell-input">
+            </div>
+            <div class="ios-cell">
+                <span class="cell-label">Foto</span>
+                <label for="file-foto" style="cursor:pointer; color:var(--ios-blue); flex:1; text-align:right;">
+                    <span id="lbl-foto-status">Agregar</span> 📷
+                </label>
+                <input type="file" id="file-foto" class="hidden" accept="image/*" onchange="handleFoto(this, 'new')">
+            </div>
+            <!-- Ubicación con Buscador -->
+            <div class="ios-cell" onclick="openLocationPicker('new')">
+                <span class="cell-label">Ubicación</span>
+                <span class="cell-value text-blue" id="lbl-geo">Agregar</span>
+                <span style="margin-left:5px;">📍</span>
+            </div>
+        </div>
+
+        <button class="btn-large" onclick="saveGasto()">Guardar Gasto</button>
+
+        <!-- Resumen -->
+        <div class="ios-list-title">RESUMEN</div>
+        <div class="ios-list-group" style="padding:16px;">
+            <div style="display:flex; justify-content:space-between; align-items:center;">
+                <div style="font-size:15px;">Total Gastado</div>
+                <div style="font-size:22px; font-weight:700;" id="lbl-total-main">$0</div>
+            </div>
+        </div>
+
+        <!-- Historial -->
+        <div class="ios-list-title">HISTORIAL</div>
+        <div class="ios-list-group" id="list-gastos"></div>
+
+        <button class="btn-large btn-secondary" onclick="openBalance()" style="margin-top:30px;">
+            Ver Balance Final
+        </button>
+    </div>
+
+    <!-- MODAL EDITAR GASTO -->
+    <div class="modal-backdrop" id="modal-edit">
+        <div class="sheet" style="height:auto; padding-bottom:40px;">
+            <div class="sheet-header">
+                <span class="sheet-title">Editar Gasto</span>
+                <button class="sheet-close" onclick="closeModal('modal-edit')">Cancelar</button>
+            </div>
+            <div style="padding:16px;">
+                <div class="ios-list-group" style="margin-bottom:20px;">
+                    <div class="ios-cell">
+                        <span class="cell-label">Monto</span>
+                        <input type="number" id="inp-edit-amount" class="cell-input"
+                            style="font-size:24px; font-weight:600; color:black;" step="0.01">
+                    </div>
+                </div>
+
+                <div class="ios-list-group">
+                    <div class="ios-cell" onclick="openPayerModal('edit')">
+                        <span class="cell-label">Pagador</span>
+                        <span class="cell-value" id="lbl-edit-payer" style="color:#000;">-</span>
+                    </div>
+                    <div class="ios-cell" onclick="openCatModal('edit')">
+                        <span class="cell-label">Categoría</span>
+                        <span class="cell-value" id="lbl-edit-cat" style="color:#000;">-</span>
+                    </div>
+                    <div class="ios-cell">
+                        <span class="cell-label">Nota</span>
+                        <input type="text" id="txt-edit-nota" class="cell-input">
+                    </div>
+                    <div class="ios-cell">
+                        <span class="cell-label">Fecha</span>
+                        <input type="date" id="txt-edit-fecha" class="cell-input">
+                    </div>
+                    <div class="ios-cell">
+                        <span class="cell-label">Foto</span>
+                        <label for="file-edit-foto"
+                            style="cursor:pointer; color:var(--ios-blue); flex:1; text-align:right;">
+                            <span id="lbl-edit-foto-status">Cambiar</span> 📷
+                        </label>
+                        <input type="file" id="file-edit-foto" class="hidden" accept="image/*"
+                            onchange="handleFoto(this, 'edit')">
+                    </div>
+                    <!-- Ubicación con Buscador -->
+                    <div class="ios-cell" onclick="openLocationPicker('edit')">
+                        <span class="cell-label">Ubicación</span>
+                        <span class="cell-value" id="lbl-edit-geo" style="color:#000;">-</span>
+                        <span style="margin-left:5px;">📍</span>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:10px; margin-top:20px;">
+                    <button class="btn-large btn-destructive" onclick="deleteEdit()" style="margin:0;">Eliminar</button>
+                    <button class="btn-large" onclick="saveEdit()" style="margin:0;">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL LOCATION PICKER (NUEVA LÓGICA) -->
+    <div class="modal-backdrop" id="modal-location-picker">
+        <div class="sheet" style="height:90vh;">
+            <div class="sheet-header">
+                <span class="sheet-title">Añadir Ubicación</span>
+                <button class="sheet-close" onclick="closeModal('modal-location-picker')">Cancelar</button>
+            </div>
+
+            <div class="loc-header-block">
+                <!-- 1. Nombre Personalizado -->
+                <input type="text" id="loc-custom-name" class="loc-input-main"
+                    placeholder="Nombre del lugar (ej. Tacos El Primo)">
+
+                <!-- 2. Buscador de Ciudad/Municipio -->
+                <div class="loc-search-wrapper">
+                    <span style="color:#8E8E93;">🔍</span>
+                    <input type="text" id="loc-api-search" class="loc-search-field"
+                        placeholder="Buscar ciudad o municipio..." onkeyup="searchPlaces(this.value)">
+                </div>
+            </div>
+
+            <div class="loc-results-list" id="loc-search-results">
+                <!-- Resultados dinámicos -->
+                <div style="padding:20px; text-align:center; color:#8E8E93; font-size:14px;">
+                    <div onclick="useCurrentGPS()"
+                        style="margin-bottom:20px; color:var(--ios-blue); font-weight:600; cursor:pointer;">
+                        📍 Usar mi ubicación actual (GPS)
+                    </div>
+                    Escribe una ciudad arriba para buscar manualmente
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL PAGADOR -->
+    <div class="modal-backdrop" id="modal-payer">
+        <div class="sheet" style="height:auto; max-height:60vh;">
+            <div class="sheet-header">
+                <span class="sheet-title">Pagador</span>
+                <button class="sheet-close" onclick="closeModal('modal-payer')">Cancelar</button>
+            </div>
+            <div class="ios-list-group" style="margin:20px;" id="list-payer-options"></div>
+            <div style="padding:0 20px 20px;">
+                <button class="btn-large btn-secondary" onclick="toggleNewPayerForm()">Nuevo Integrante</button>
+                <div id="new-payer-form" class="hidden" style="margin-top:10px; display:flex; gap:10px;">
+                    <input type="text" id="newPayerName" class="cell-input"
+                        style="background:#fff; padding:10px; border-radius:8px; text-align:left;" placeholder="Nombre">
+                    <button onclick="addNewPayerFromModal()"
+                        style="border:none; background:var(--ios-green); color:white; border-radius:8px; padding:0 15px;">OK</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL CATEGORIAS -->
+    <div class="modal-backdrop" id="modal-cat">
+        <div class="sheet" style="height:70vh;">
+            <div class="sheet-header">
+                <span class="sheet-title">Categoría</span>
+                <button class="sheet-close" onclick="closeModal('modal-cat')">Cancelar</button>
+            </div>
+            <div style="padding:20px; display:grid; grid-template-columns:repeat(4, 1fr); gap:15px;" id="grid-cats">
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL BALANCE FINAL (DISEÑO TICKET CLÁSICO RESTAURADO) -->
+    <div class="modal-backdrop" id="modal-balance">
+        <div class="sheet" style="height:95vh;">
+            <div class="sheet-header">
+                <span class="sheet-title">Balance Final</span>
+                <button class="sheet-close" onclick="closeModal('modal-balance')">Cerrar</button>
+            </div>
+
+            <div style="flex:1; overflow-y:auto; padding:20px 10px;">
+
+                <div id="ticket-visual">
+                    <div class="ticket-header">
+                        <h2 id="ticket-trip-name">Viaje</h2>
+                        <p id="ticket-date">Fecha</p>
+                    </div>
+                    <div class="ticket-body">
+                        <div class="ticket-total-section">
+                            <div class="ticket-total-label" style="font-size:0.8rem; color:#ccc;">GASTO TOTAL</div>
+                            <div class="ticket-total-amount" id="ticket-total">$0.00</div>
+                            <div class="ticket-per-person" id="ticket-ppp">p/p: $0.00</div>
+                        </div>
+                        <div class="ranking-title" style="text-align:left; font-size:0.9rem; margin-bottom:8px;">📊
+                            Desglose de Gastos</div>
+                        <div class="ticket-stats-section">
+                            <div class="ticket-chart-container" id="ticket-donut-container"></div>
+                            <div id="ticket-categories" class="ticket-categories-list"></div>
+                        </div>
+                        <div style="text-align:center; margin-bottom: 15px; color: #555; font-size: 0.9rem;">
+                            👑 Magnate del Viaje: <strong id="ticket-magnate">Nadie</strong>
+                        </div>
+                        <div class="ranking-title" style="text-align:center; margin-top:10px;">Ajuste de Cuentas</div>
+                        <div id="ticket-debts-container" class="ticket-debts-list"></div>
+                        <div class="ticket-log-section">
+                            <div class="log-title" style="font-weight:bold; color:#555;">📖 Libro Diario</div>
+                            <table class="log-table" id="ticket-audit-table"></table>
+                        </div>
+                    </div>
+                    <div class="ticket-footer">Generado con App de Gastos</div>
+                </div>
+
+                <div class="modern-action-row">
+                    <button class="btn-modern-save" onclick="downloadTicket()">Guardar Imagen</button>
+                </div>
+
+                <div style="margin-top:20px; padding:0 20px;">
+                    <button class="btn-large btn-destructive" onclick="borrarDatos()">Borrar Todo</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL ADVERTENCIA IMPORTAR -->
+    <div class="modal-backdrop" id="modal-import-warning">
+        <div class="import-alert-box">
+            <div class="import-alert-title">⚠️ Sobrescribir Datos</div>
+            <div class="import-alert-msg">
+                Al cargar un respaldo, se borrarán <strong>TODOS</strong> los datos actuales y serán
+                reemplazados.<br><br>
+                Esta acción no se puede deshacer.
+            </div>
+            <div class="import-alert-actions">
+                <button class="btn-alert" onclick="closeModal('modal-import-warning')">Cancelar</button>
+                <button class="btn-alert btn-alert-destructive" onclick="continueImport()">Sobrescribir</button>
+            </div>
+        </div>
+    </div>
+
+    <input type="file" id="importFile" class="hidden" onchange="doImport(this)">
+
+    <script>
+        // --- ESTADO Y CONFIG ---
+        let data = { viaje: "", personas: [], gastos: [] };
+
+        // --- PREVENCIÓN XSS ---
+        function esc(str) { return String(str || '').replace(/[&<>'"]/g, char => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', "'": '&#39;', '"': '&quot;' }[char])); }
+
+        // --- FILE SYSTEM ACCESS API (Guardado Directo a Archivo) ---
+        let fileHandle;
+
+        async function initFileSaving(isNew) {
+            try {
+                if (isNew) {
+                    const options = {
+                        suggestedName: `Gastos_${data.viaje || 'Nuevo'}.json`,
+                        types: [{
+                            description: 'JSON Files',
+                            accept: { 'application/json': ['.json'] },
+                        }],
+                    };
+                    fileHandle = await window.showSaveFilePicker(options);
+                } else {
+                    [fileHandle] = await window.showOpenFilePicker({
+                        types: [{
+                            description: 'JSON Files',
+                            accept: { 'application/json': ['.json'] },
+                        }],
+                    });
+                }
+            } catch (error) {
+                console.error(error);
+                return false;
+            }
+            return true;
+        }
+
+        async function saveToFile() {
+            if (!fileHandle) {
+                console.warn("No hay un archivo seleccionado para guardar.");
+                return;
+            }
+            try {
+                const writable = await fileHandle.createWritable();
+                await writable.write(JSON.stringify(data));
+                await writable.close();
+            } catch (error) {
+                console.error("Error al guardar en el archivo:", error);
+                alert("Error al guardar en el archivo. Verifica los permisos de Chrome.");
+            }
+        }
+
+        async function loadFromFile() {
+            if (!fileHandle) return null;
+            try {
+                const file = await fileHandle.getFile();
+                const contents = await file.text();
+                return JSON.parse(contents);
+            } catch (error) {
+                console.error("Error al leer el archivo:", error);
+                return null;
+            }
+        }
+
+        function removeDataLocally(cb) {
+            data = { viaje: "", personas: [], gastos: [] };
+            fileHandle = null;
+            cb();
+        }
+
+        // Variables para NUEVO GASTO
+        let tempMonto = "";
+        let tempPayer = "";
+        let tempCat = "";
+        let tempImg = null;
+        let tempGeo = null;
+
+        // Variables para EDICION
+        let editingId = null;
+        let tempEditPayer = "";
+        let tempEditCat = "";
+        let tempEditImg = null;
+        let tempEditGeo = null;
+
+        // Contexto del modal de selección
+        let selectContext = 'new';
+        let locContext = '';
+
+        // GPS Globals
+        let searchTimeout = null;
+
+        // --- 16 CATEGORÍAS MAESTRAS (Ordenadas y Profesionales) ---
+        const cats = [
+            { n: 'Alimentos', i: '🍽️' }, { n: 'Alojamiento', i: '🏨' }, { n: 'Compras', i: '🛍️' },
+            { n: 'Entretenim.', i: '🎟️' }, { n: 'Estac./Peaje', i: '🅿️' }, { n: 'Gasolina', i: '⛽' },
+            { n: 'Propinas', i: '💵' }, { n: 'Regalos', i: '🎁' }, { n: 'Renta Auto', i: '🚗' },
+            { n: 'Salud', i: '💊' }, { n: 'Servicios', i: '📶' }, { n: 'Supermercado', i: '🛒' },
+            { n: 'Tours', i: '🗺️' }, { n: 'Transporte', i: '🚕' }, { n: 'Vuelos', i: '✈️' },
+            { n: 'Otros', i: '📦' }
+        ];
+
+        const coloresCat = {
+            'Alimentos': '#FF9500', 'Bebidas': '#5AC8FA', 'Transporte': '#FFCC00', 'Gasolina': '#5856D6',
+            'Hospedaje': '#FF2D55', 'Vuelos': '#007AFF', 'Super': '#4CD964', 'Tours': '#FF3B30',
+            'Entradas': '#AF52DE', 'Souvenirs': '#FF9500', 'Propinas': '#8E8E93', 'Casetas': '#FFCC00',
+            'Renta Auto': '#007AFF', 'Estaciona.': '#8E8E93', 'Uber/Taxi': '#FFCC00', 'Café/Snack': '#A2845E',
+            'Farmacia': '#FF3B30', 'Compras': '#FF2D55', 'Fiesta': '#AF52DE', 'Otros': '#8E8E93'
+        };
+
+        // Diccionario Abreviaturas Estados MX
+        const stateAbbr = {
+            "Aguascalientes": "Ags.", "Baja California": "B.C.", "Baja California Sur": "B.C.S.",
+            "Campeche": "Camp.", "Chiapas": "Chis.", "Chihuahua": "Chih.", "Ciudad de México": "CDMX",
+            "Coahuila": "Coah.", "Colima": "Col.", "Durango": "Dgo.", "Guanajuato": "Gto.",
+            "Guerrero": "Gro.", "Hidalgo": "Hgo.", "Jalisco": "Jal.", "México": "Edo. Méx.",
+            "Michoacán": "Mich.", "Morelos": "Mor.", "Nayarit": "Nay.", "Nuevo León": "N.L.",
+            "Oaxaca": "Oax.", "Puebla": "Pue.", "Querétaro": "Qro.", "Quintana Roo": "Q. Roo",
+            "San Luis Potosí": "S.L.P.", "Sinaloa": "Sin.", "Sonora": "Son.", "Tabasco": "Tab.",
+            "Tamaulipas": "Tamps.", "Tlaxcala": "Tlax.", "Veracruz": "Ver.", "Yucatán": "Yuc.", "Zacatecas": "Zac."
+        };
+
+        // Helper OPCIONAL para saber qué cargar al inicio
+        async function loadMostRecentOPFSFile() {
+            try {
+                const root = await navigator.storage.getDirectory();
+                let latestFile = null;
+                let latestTime = 0;
+
+                // getDirectory() returns an AsyncIterable
+                for await (const [name, handle] of root.entries()) {
+                    if (handle.kind === 'file' && name.endsWith('.json')) {
+                        const file = await handle.getFile();
+                        if (file.lastModified > latestTime) {
+                            latestTime = file.lastModified;
+                            latestFile = handle;
+                        }
+                    }
+                }
+
+                if (latestFile) {
+                    fileHandle = latestFile; // asignar a variable global
+                    const content = await loadFromFile();
+                    if (content) {
+                        data = content;
+                        initMain();
+                    }
+                }
+            } catch (e) {
+                console.warn("No se pudo autoseleccionar un archivo previo OPFS", e);
+            }
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            document.getElementById('txt-fecha').valueAsDate = new Date();
+            renderCats();
+
+            // Intentar cargar el último archivo trabajado automáticamente
+            loadMostRecentOPFSFile();
+        });
+
+        function save() { saveToFile(); }
+        function toast(msg) {
+            const t = document.getElementById('toast');
+            t.innerText = msg; t.style.opacity = 1; t.style.transform = "translateX(-50%) translateY(0)";
+            setTimeout(() => { t.style.opacity = 0; t.style.transform = "translateX(-50%) translateY(-10px)"; }, 3000);
+        }
+        function loading(show) { document.getElementById('loader').style.display = show ? 'flex' : 'none'; }
+
+        // --- SETUP ---
+        function addSetupPayer() {
+            const inp = document.getElementById('setupViajero');
+            const name = inp.value.trim();
+            if (!name) return;
+            if (data.personas.includes(name)) return;
+            data.personas.push(name);
+            renderSetupList();
+            inp.value = "";
+        }
+        function renderSetupList() {
+            const c = document.getElementById('setup-list-container');
+            let html = '';
+            data.personas.forEach(p => { html += `<div class="ios-cell"><span class="cell-label">${esc(p)}</span></div>`; });
+            c.innerHTML = html;
+        }
+        async function crearViaje() {
+            const dest = document.getElementById('setupDestino').value.trim();
+            if (!dest || data.personas.length === 0) return toast("Faltan datos");
+            data.viaje = dest;
+
+            // Forzar al usuario a seleccionar dónde guardar su nuevo archivo JSON
+            const success = await initFileSaving(true);
+            if (success) {
+                await saveToFile();
+                initMain();
+            } else {
+                toast("Viaje cancelado: Selecciona un archivo.");
+            }
+        }
+
+        // --- MAIN ---
+        function initMain() {
+            document.getElementById('view-setup').classList.add('hidden');
+            document.getElementById('view-main').classList.remove('hidden');
+            document.getElementById('nav-title').innerText = data.viaje;
+            updateUI();
+        }
+
+        // --- INPUTS ---
+        function kp(key) {
+            if (key === 'DEL') tempMonto = tempMonto.slice(0, -1);
+            else if (key === '.') { if (!tempMonto.includes('.')) tempMonto += key; }
+            else if (tempMonto.length < 9) tempMonto += key;
+            document.getElementById('montoDisplay').value = tempMonto ? `$${tempMonto}` : "$0";
+        }
+
+        // --- SELECTORES INTELIGENTES (NEW vs EDIT) ---
+        function openPayerModal(ctx) {
+            selectContext = ctx; // 'new' o 'edit'
+            const list = document.getElementById('list-payer-options');
+            list.innerHTML = "";
+
+            let currentVal = (selectContext === 'new') ? tempPayer : tempEditPayer;
+
+            data.personas.forEach(p => {
+                list.innerHTML += `<div class="ios-cell" onclick="selectPayer('${p}')">
+                <span class="cell-label">${p}</span>
+                ${currentVal === p ? '<span style="color:var(--ios-blue);">✓</span>' : ''}
+            </div>`;
+            });
+            document.getElementById('modal-payer').style.display = 'flex';
+        }
+
+        function selectPayer(p) {
+            if (selectContext === 'new') {
+                tempPayer = p;
+                document.getElementById('lbl-payer').innerText = p;
+                document.getElementById('lbl-payer').classList.remove('text-blue');
+                document.getElementById('lbl-payer').style.color = '#000';
+            } else {
+                tempEditPayer = p;
+                document.getElementById('lbl-edit-payer').innerText = p;
+            }
+            closeModal('modal-payer');
+        }
+
+        function renderCats() {
+            const g = document.getElementById('grid-cats');
+            g.innerHTML = "";
+            cats.forEach(c => {
+                g.innerHTML += `<div style="display:flex; flex-direction:column; align-items:center; gap:5px;" onclick="selectCat('${c.n}','${c.i}')">
+                <div style="width:60px; height:60px; background:#E5E5EA; border-radius:30px; display:flex; align-items:center; justify-content:center; font-size:28px;">${c.i}</div>
+                <div style="font-size:11px; color:var(--ios-gray-text); text-align:center;">${c.n}</div>
+            </div>`;
+            });
+        }
+
+        function openCatModal(ctx) {
+            selectContext = ctx; // 'new' o 'edit'
+            document.getElementById('modal-cat').style.display = 'flex';
+        }
+
+        function selectCat(n, i) {
+            if (selectContext === 'new') {
+                tempCat = { n, i };
+                document.getElementById('lbl-cat').innerText = `${i} ${n}`;
+                document.getElementById('lbl-cat').classList.remove('text-blue');
+                document.getElementById('lbl-cat').style.color = '#000';
+            } else {
+                tempEditCat = { n, i };
+                document.getElementById('lbl-edit-cat').innerText = `${i} ${n}`;
+            }
+            closeModal('modal-cat');
+        }
+
+        function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+
+        function toggleNewPayerForm() { document.getElementById('new-payer-form').classList.remove('hidden'); }
+        function addNewPayerFromModal() {
+            const name = document.getElementById('newPayerName').value.trim();
+            if (name && !data.personas.includes(name)) {
+                data.personas.push(name);
+                save();
+                // Reabrir para actualizar lista
+                openPayerModal(selectContext);
+                document.getElementById('new-payer-form').classList.add('hidden');
+                document.getElementById('newPayerName').value = "";
+            }
+        }
+
+        function handleFoto(inp, ctx) {
+            if (inp.files && inp.files[0]) {
+                const r = new FileReader();
+                r.onload = function (e) {
+                    const img = new Image();
+                    img.onload = function () {
+                        const cvs = document.createElement('canvas');
+                        const ctxCanvas = cvs.getContext('2d');
+                        const scale = 800 / img.width;
+                        cvs.width = 800; cvs.height = img.height * scale;
+                        ctxCanvas.drawImage(img, 0, 0, cvs.width, cvs.height);
+                        const result = cvs.toDataURL('image/jpeg', 0.7);
+
+                        if (ctx === 'new') {
+                            tempImg = result;
+                            document.getElementById('lbl-foto-status').innerText = "Lista";
+                        } else {
+                            tempEditImg = result;
+                            document.getElementById('lbl-edit-foto-status').innerText = "Lista";
+                        }
+                    };
+                    img.src = e.target.result;
+                };
+                r.readAsDataURL(inp.files[0]);
+            }
+        }
+
+        // --- NUEVA LÓGICA DE UBICACIÓN (CONCATENACIÓN) ---
+        function openLocationPicker(ctx) {
+            locContext = ctx;
+            document.getElementById('loc-custom-name').value = "";
+            document.getElementById('loc-api-search').value = "";
+            document.getElementById('loc-search-results').innerHTML = `
+            <div style="padding:20px; text-align:center; color:#8E8E93; font-size:14px;">
+                <div onclick="useCurrentGPS()" style="margin-bottom:20px; color:var(--ios-blue); font-weight:600; cursor:pointer;">
+                    📍 Usar mi ubicación actual (GPS)
+                </div>
+                Escribe una ciudad arriba para buscar manualmente
+            </div>
+        `;
+            document.getElementById('modal-location-picker').style.display = 'flex';
+            // Auto focus custom name for speed
+            setTimeout(() => document.getElementById('loc-custom-name').focus(), 300);
+        }
+
+        function searchPlaces(query) {
+            if (searchTimeout) clearTimeout(searchTimeout);
+            if (query.length < 3) return;
+
+            searchTimeout = setTimeout(() => {
+                const div = document.getElementById('loc-search-results');
+                div.innerHTML = `
+                <div style="padding:20px; text-align:center; color:#8E8E93; font-size:14px;">
+                    <div onclick="useCurrentGPS()" style="margin-bottom:20px; color:var(--ios-blue); font-weight:600; cursor:pointer;">
+                        📍 Usar mi ubicación actual (GPS local)
+                    </div>
+                    Modo Offline Activo: No se puede buscar la ciudad exacta sin internet. <br>Escribe el lugar y presiona Guardar.
+                    <br><br>
+                    <button class="btn-large" onclick="saveCombinedLocation('')" style="background:#FF9500; font-size:15px; padding:10px;">Guardar Manualmente</button>
+                </div>
+            `;
+            }, 300);
+        }
+
+        function useCurrentGPS() {
+            toast("Obteniendo GPS local...");
+
+            if (!navigator.geolocation) {
+                alert("GPS no soportado en este dispositivo");
+                return;
+            }
+
+            navigator.geolocation.getCurrentPosition((position) => {
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+
+                // Reemplazo la petición (fetch reverse) para que sea 100% offline
+                let addressPart = `Loc: ${lat.toFixed(4)}, ${lon.toFixed(4)}`;
+                saveCombinedLocation(addressPart);
+
+            }, (err) => {
+                alert("Error GPS: Verifica el permiso de ubicación en tu celular.");
+            }, { enableHighAccuracy: true, timeout: 8000 });
+        }
+
+        function abbreviateState(text) {
+            if (!text) return "";
+            let newText = text;
+            for (const [state, abbr] of Object.entries(stateAbbr)) {
+                if (newText.includes(state)) {
+                    newText = newText.replace(state, abbr);
+                }
+            }
+            return newText;
+        }
+
+        function saveCombinedLocation(locationPart) {
+            const customName = document.getElementById('loc-custom-name').value.trim();
+            let final = abbreviateState(locationPart);
+
+            if (customName) {
+                final = `${customName} • ${abbreviateState(locationPart)}`;
+            }
+
+            const geoObj = { text: final };
+
+            const lblId = locContext === 'new' ? 'lbl-geo' : 'lbl-edit-geo';
+            if (locContext === 'new') {
+                tempGeo = geoObj;
+                document.getElementById(lblId).innerText = final;
+                document.getElementById(lblId).classList.remove('text-blue');
+                document.getElementById(lblId).style.color = '#000';
+            } else {
+                tempEditGeo = geoObj;
+                document.getElementById(lblId).innerText = final;
+            }
+
+            closeModal('modal-location-picker');
+        }
+
+
+        function saveGasto() {
+            const m = parseFloat(tempMonto);
+            if (!m || !tempPayer || !tempCat) return toast("Completa los campos");
+
+            const g = {
+                id: Date.now(),
+                date: document.getElementById('txt-fecha').value,
+                payer: tempPayer,
+                cat: tempCat,
+                note: document.getElementById('txt-nota').value,
+                amount: m,
+                img: tempImg,
+                geo: tempGeo
+            };
+            data.gastos.push(g);
+            save();
+            resetForm();
+            updateUI();
+            toast("Guardado");
+        }
+
+        function resetForm() {
+            tempMonto = ""; document.getElementById('montoDisplay').value = "$0";
+            tempPayer = ""; document.getElementById('lbl-payer').innerText = "Seleccionar"; document.getElementById('lbl-payer').classList.add('text-blue');
+            tempCat = ""; document.getElementById('lbl-cat').innerText = "Seleccionar"; document.getElementById('lbl-cat').classList.add('text-blue');
+            document.getElementById('txt-nota').value = "";
+            tempImg = null; document.getElementById('lbl-foto-status').innerText = "Agregar";
+            tempGeo = null; document.getElementById('lbl-geo').innerText = "Agregar";
+            document.getElementById('lbl-geo').classList.add('text-blue');
+        }
+
+        function updateUI() {
+            const list = document.getElementById('list-gastos');
+            list.innerHTML = "";
+            let total = 0;
+            const sorted = [...data.gastos].reverse();
+            sorted.forEach(g => {
+                total += g.amount;
+                const d = new Date(g.date);
+                const dStr = `${d.getDate()}/${d.getMonth() + 1}`;
+
+                const locationText = g.geo && g.geo.text ? `<span class="tx-location-badge">📍 ${esc(g.geo.text)}</span>` : '';
+
+                list.innerHTML += `<div class="tx-row" onclick="openEditGasto(${g.id})">
+                <div class="tx-icon">${g.cat.i}</div>
+                <div class="tx-details">
+                    <div class="tx-title">${g.cat.n} <span style="font-weight:400; color:#888;">(${esc(g.payer)})</span></div>
+                    <div class="tx-meta">
+                        ${dStr} • ${esc(g.note) || 'Gasto'}
+                        ${locationText}
+                    </div>
+                </div>
+                <div class="tx-amount">$${g.amount.toLocaleString()}</div>
+            </div>`;
+            });
+            if (sorted.length === 0) list.innerHTML = `<div style="padding:20px; text-align:center; color:#999;">Sin gastos</div>`;
+            document.getElementById('lbl-total-main').innerText = `$${total.toLocaleString()}`;
+        }
+
+        // --- FUNCIONES DE EDICIÓN ---
+        function openEditGasto(id) {
+            const gasto = data.gastos.find(g => g.id === id);
+            if (!gasto) return;
+
+            editingId = id;
+
+            // Poblar campos
+            document.getElementById('inp-edit-amount').value = gasto.amount;
+
+            tempEditPayer = gasto.payer;
+            document.getElementById('lbl-edit-payer').innerText = gasto.payer;
+
+            tempEditCat = gasto.cat;
+            document.getElementById('lbl-edit-cat').innerText = `${gasto.cat.i} ${gasto.cat.n}`;
+
+            document.getElementById('txt-edit-nota').value = gasto.note;
+            document.getElementById('txt-edit-fecha').value = gasto.date;
+
+            tempEditImg = gasto.img;
+            document.getElementById('lbl-edit-foto-status').innerText = gasto.img ? "Cambiar" : "Agregar";
+
+            tempEditGeo = gasto.geo;
+            document.getElementById('lbl-edit-geo').innerText = (gasto.geo && gasto.geo.text) ? gasto.geo.text : "Agregar";
+
+            document.getElementById('modal-edit').style.display = 'flex';
+        }
+
+        function saveEdit() {
+            const amt = parseFloat(document.getElementById('inp-edit-amount').value);
+            if (!amt || !tempEditPayer || !tempEditCat) return toast("Datos incompletos");
+
+            const idx = data.gastos.findIndex(g => g.id === editingId);
+            if (idx !== -1) {
+                data.gastos[idx] = {
+                    id: editingId,
+                    date: document.getElementById('txt-edit-fecha').value,
+                    payer: tempEditPayer,
+                    cat: tempEditCat,
+                    note: document.getElementById('txt-edit-nota').value,
+                    amount: amt,
+                    img: tempEditImg,
+                    geo: tempEditGeo
+                };
+                save();
+                updateUI();
+                closeModal('modal-edit');
+                toast("Gasto actualizado");
+            }
+        }
+
+        function deleteEdit() {
+            if (confirm("¿Eliminar este gasto definitivamente?")) {
+                data.gastos = data.gastos.filter(g => g.id !== editingId);
+                save();
+                updateUI();
+                closeModal('modal-edit');
+                toast("Gasto eliminado");
+            }
+        }
+
+        // --- OLD LOGIC ADAPTED ---
+        function openBalance() {
+            document.getElementById('modal-balance').style.display = 'flex';
+
+            let total = data.gastos.reduce((a, b) => a + b.amount, 0);
+            let pagado = {};
+            let catTot = {};
+
+            data.personas.forEach(p => pagado[p] = 0);
+            data.gastos.forEach(g => {
+                if (pagado[g.payer] !== undefined) pagado[g.payer] += g.amount;
+                catTot[g.cat.n] = (catTot[g.cat.n] || 0) + g.amount;
+            });
+
+            document.getElementById("ticket-trip-name").innerText = data.viaje;
+            document.getElementById("ticket-date").innerText = new Date().toLocaleDateString();
+            document.getElementById("ticket-total").innerText = `$${total.toLocaleString()}`;
+
+            const pp = data.personas.length ? total / data.personas.length : 0;
+            document.getElementById("ticket-ppp").innerText = `p/p: $${pp.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
+
+            // Top Magnate
+            let topP = "Nadie"; let max = 0;
+            for (let p in pagado) { if (pagado[p] > max) { max = pagado[p]; topP = p; } }
+            document.getElementById("ticket-magnate").innerText = max > 0 ? `${topP}` : "Nadie";
+
+            // Chart & Cats
+            let chartData = [];
+            let catsSorted = Object.entries(catTot).sort((a, b) => b[1] - a[1]);
+            let catHtml = "";
+            catsSorted.slice(0, 5).forEach(([c, m]) => {
+                let col = coloresCat[c] || '#999';
+                chartData.push({ value: m, color: col });
+                catHtml += `<div class="ticket-cat-row"><span class="ticket-cat-name"><span class="ticket-cat-dot" style="background:${col}"></span>${c}</span><span>$${m.toLocaleString()}</span></div>`;
+            });
+            document.getElementById("ticket-categories").innerHTML = catHtml;
+            document.getElementById("ticket-donut-container").innerHTML = total > 0 ? generateDonutSVG(chartData) : "";
+
+            // Deudas
+            let debts = [];
+            data.personas.forEach(p => debts.push({ p, bal: pagado[p] - pp }));
+            let debtors = debts.filter(x => x.bal < -1).sort((a, b) => a.bal - b.bal);
+            let creditors = debts.filter(x => x.bal > 1).sort((a, b) => b.bal - a.bal);
+
+            let htmlDebts = "";
+            let i = 0, j = 0;
+            while (i < debtors.length && j < creditors.length) {
+                let d = debtors[i]; let c = creditors[j];
+                let m = Math.min(Math.abs(d.bal), c.bal);
+                htmlDebts += `<div class="debt-row"><span class="debt-from">${d.p}</span><span class="debt-arrow">➔</span><span class="debt-amount">$${m.toLocaleString(undefined, { maximumFractionDigits: 0 })}</span><span class="debt-arrow">➔</span><span class="debt-to">${c.p}</span></div>`;
+                d.bal += m; c.bal -= m;
+                if (Math.abs(d.bal) < 1) i++;
+                if (c.bal < 1) j++;
+            }
+            document.getElementById("ticket-debts-container").innerHTML = htmlDebts || "<div style='text-align:center'>Cuentas al día</div>";
+
+            // Log
+            let logHtml = "";
+            data.personas.forEach(p => {
+                logHtml += `<tr><td colspan="3"><div class="log-participant-header">${esc(p)} (Pagó: $${pagado[p].toLocaleString()})</div></td></tr>`;
+                data.gastos.filter(g => g.payer === p).forEach(x => {
+                    let d = new Date(x.date);
+                    let dStr = !isNaN(d) ? `${d.getDate()}/${d.getMonth() + 1}` : "";
+
+                    const loc = x.geo && x.geo.text ? `<span class="log-location-text">📍 ${esc(x.geo.text)}</span>` : "";
+
+                    logHtml += `<tr><td class="log-date">${dStr}</td><td class="log-desc"><strong>${x.cat.n}</strong><span>${esc(x.note)}</span>${loc}</td><td class="log-amount">$${parseFloat(x.amount).toLocaleString()}</td></tr>`;
+                });
+            });
+            document.getElementById("ticket-audit-table").innerHTML = logHtml;
+        }
+
+        function generateDonutSVG(data) {
+            let total = data.reduce((a, b) => a + b.value, 0);
+            let acc = 0; let paths = []; const r = 40, c = 50, w = 8, circ = 2 * Math.PI * r;
+            data.forEach(d => {
+                let pct = d.value / total; let len = pct * circ; let gap = circ - len; let off = -(acc * circ);
+                paths.push(`<circle cx="${c}" cy="${c}" r="${r}" fill="none" stroke="${d.color}" stroke-width="${w}" stroke-dasharray="${len} ${gap}" stroke-dashoffset="${off}" />`);
+                acc += pct;
+            });
+            return `<svg viewBox="0 0 100 100" class="ticket-chart-svg">${paths.join('')}</svg>`;
+        }
+
+        function downloadTicket() {
+            loading(true);
+            html2canvas(document.getElementById('ticket-visual'), { scale: 3, backgroundColor: null }).then(c => {
+                const a = document.createElement('a'); a.download = `Balance_${data.viaje}.png`;
+                a.href = c.toDataURL(); a.click(); loading(false);
+            });
+        }
+
+        function borrarDatos() {
+            if (confirm("¿Seguro que quieres borrar la vista actual? El archivo original debes eliminarlo manualmente.")) {
+                removeDataLocally(() => {
+                    location.reload();
+                });
+            }
+        }
+
+        async function exportarBackup() {
+            if (!fileHandle) return toast("No hay datos para exportar.");
+            try {
+                const file = await fileHandle.getFile();
+                const url = URL.createObjectURL(file);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileHandle.name;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast(`Archivo exportado a Descargas como: ${fileHandle.name}`);
+            } catch (e) {
+                console.error(e);
+                toast("Error al intentar exportar el archivo.");
+            }
+        }
+
+        async function continueImport() {
+            document.getElementById('modal-import-warning').style.display = 'none';
+            document.getElementById('importFile').click();
+        }
+
+        async function doImport(inp) {
+            const f = inp.files[0];
+            if (!f) return;
+            const r = new FileReader();
+            r.onload = async e => {
+                try {
+                    let json = JSON.parse(e.target.result);
+
+                    // MIGRACIÓN: Detectar formato antiguo (Array based)
+                    if (json.viajes && Array.isArray(json.viajes)) {
+                        const oldTrip = json.viajes[json.viajes.length - 1];
+                        const oldGastos = json.gastos || [];
+
+                        data = {
+                            viaje: oldTrip[0],
+                            personas: oldTrip[1].split(",").map(s => s.trim()),
+                            gastos: []
+                        };
+
+                        const catMap = {
+                            'Alimentos': '🍽️', 'Bebidas': '🍹', 'Transporte': '🚕', 'Gasolina': '⛽',
+                            'Hospedaje': '🏨', 'Vuelos': '✈️', 'Super': '🛒', 'Tours': '🗺️',
+                            'Entradas': '🎟️', 'Souvenirs': '🗿', 'Propinas': '💵', 'Casetas': '🚧',
+                            'Renta Auto': '🚗', 'Estaciona.': '🅿️', 'Uber/Taxi': '🚖', 'Café/Snack': '☕',
+                            'Farmacia': '💊', 'Compras': '🛍️', 'Fiesta': '🎉', 'Otros': '📦'
+                        };
+
+                        oldGastos.forEach((g, idx) => {
+                            if (g[1] === data.viaje) {
+                                data.gastos.push({
+                                    id: Date.now() + idx, date: g[0], payer: g[2],
+                                    cat: { n: g[3], i: catMap[g[3]] || '📦' },
+                                    note: g[4], amount: parseFloat(g[5]),
+                                    img: g[6], geo: g[7]
+                                });
+                            }
+                        });
+                        toast("Archivo antiguo migrado exitosamente");
+                    } else {
+                        data = json;
+                        toast("Archivo abierto correctamente y listo para edición");
+                    }
+
+                    // Forzar crear un nuevo OPFS handle con estos datos
+                    await initFileSaving(true);
+                    await saveToFile();
+
+                    initMain();
+                    document.getElementById('view-setup').classList.add('hidden');
+                    document.getElementById('view-main').classList.remove('hidden');
+                } catch (x) {
+                    console.error(x);
+                    alert("Error: No se pudo leer el archivo o el formato de datos no es válido.");
+                }
+            };
+            r.readAsText(f);
+            inp.value = "";
+        }
+    </script>
+
+</body>
+
+</html>
