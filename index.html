@@ -418,19 +418,23 @@
         .ticket-stats-section {
             display: flex;
             align-items: center;
-            justify-content: space-between;
+            justify-content: flex-start;
+            /* Changed to start */
             margin-bottom: 15px;
             background: #fcfcfc;
             border-radius: 12px;
-            padding: 10px;
+            padding: 15px;
+            /* Increased padding */
             border: 1px solid #eee;
+            gap: 20px;
+            /* Force separation between chart and list */
         }
 
         .ticket-chart-container {
-            width: 70px;
-            height: 70px;
+            width: 80px;
+            /* Slightly larger canvas area */
+            height: 80px;
             flex-shrink: 0;
-            margin-right: 15px;
             position: relative;
         }
 
@@ -745,16 +749,8 @@
                 <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
             </svg>
         </button>
-        <div class="nav-title" id="nav-title">Mis Gastos</div>
-        <button class="nav-btn" onclick="exportarBackup()" title="Guardar Respaldo">
-            <!-- Icono Disquete (Guardar) -->
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"
-                stroke-linejoin="round">
-                <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"></path>
-                <polyline points="17 21 17 13 7 13 7 21"></polyline>
-                <polyline points="7 3 7 8 15 8"></polyline>
-            </svg>
-        </button>
+        <div class="nav-title" id="nav-title" style="flex-grow: 1; text-align: center; padding-right: 48px;">Mis Gastos
+        </div>
     </div>
 
     <!-- PANTALLA SETUP -->
