@@ -1620,23 +1620,39 @@
             let total = 0;
             const sorted = [...data.gastos].reverse();
             sorted.forEach(g => {
-                total += g.amount;
+                const isTransfer = g.cat && g.cat.n === 'Transferencia';
+
+                // Las transferencias NO suman al total (son movimientos internos)
+                if (!isTransfer) total += g.amount;
+
                 const d = new Date(g.date);
                 const dStr = `${d.getDate()}/${d.getMonth() + 1}`;
 
-                const locationText = g.geo && g.geo.text ? `<span class="tx-location-badge">📍 ${esc(g.geo.text)}</span>` : '';
-
-                list.innerHTML += `<div class="tx-row" onclick="openEditGasto(${g.id})">
-                <div class="tx-icon">${g.cat.i}</div>
-                <div class="tx-details">
-                    <div class="tx-title">${g.cat.n} <span style="font-weight:400; color:#888;">(${esc(g.payer)})</span></div>
-                    <div class="tx-meta">
-                        ${dStr} • ${esc(g.note) || 'Gasto'}
-                        ${locationText}
+                if (isTransfer) {
+                    list.innerHTML += `<div class="tx-row" onclick="openEditGasto(${g.id})" style="border-left: 3px solid #AF52DE;">
+                    <div class="tx-icon">💸</div>
+                    <div class="tx-details">
+                        <div class="tx-title" style="color:#5856D6;">Pago Directo <span style="font-weight:400; color:#888;">${esc(g.payer)} ➡ ${esc(g.transferTo || '')}</span></div>
+                        <div class="tx-meta">
+                            ${dStr} • ${esc(g.note) || 'Transferencia'}
+                        </div>
                     </div>
-                </div>
-                <div class="tx-amount">$${g.amount.toLocaleString()}</div>
-            </div>`;
+                    <div class="tx-amount" style="color:#5856D6;">$${g.amount.toLocaleString()}</div>
+                </div>`;
+                } else {
+                    const locationText = g.geo && g.geo.text ? `<span class="tx-location-badge">📍 ${esc(g.geo.text)}</span>` : '';
+                    list.innerHTML += `<div class="tx-row" onclick="openEditGasto(${g.id})">
+                    <div class="tx-icon">${g.cat.i}</div>
+                    <div class="tx-details">
+                        <div class="tx-title">${g.cat.n} <span style="font-weight:400; color:#888;">(${esc(g.payer)})</span></div>
+                        <div class="tx-meta">
+                            ${dStr} • ${esc(g.note) || 'Gasto'}
+                            ${locationText}
+                        </div>
+                    </div>
+                    <div class="tx-amount">$${g.amount.toLocaleString()}</div>
+                </div>`;
+                }
             });
             if (sorted.length === 0) list.innerHTML = `<div style="padding:20px; text-align:center; color:#999;">Sin gastos</div>`;
             document.getElementById('lbl-total-main').innerText = `$${total.toLocaleString()}`;
