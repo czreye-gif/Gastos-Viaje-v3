@@ -838,6 +838,11 @@
 
         <button class="btn-large" onclick="saveGasto()">Guardar Gasto</button>
 
+        <button class="btn-large" onclick="openTransferModal()"
+            style="background: linear-gradient(135deg, #5856D6, #AF52DE); color:white; margin-top:10px;">
+            💸 Registrar Pago entre Viajeros
+        </button>
+
         <!-- Resumen -->
         <div class="ios-list-title">RESUMEN</div>
         <div class="ios-list-group" style="padding:16px;">
@@ -854,6 +859,56 @@
         <button class="btn-large btn-secondary" onclick="openBalance()" style="margin-top:30px;">
             Ver Balance Final
         </button>
+    </div>
+
+    <!-- MODAL TRANSFERENCIA ENTRE VIAJEROS -->
+    <div class="modal-backdrop" id="modal-transfer">
+        <div class="sheet" style="height:auto; max-height:85vh;">
+            <div class="sheet-header">
+                <span class="sheet-title">💸 Pago Directo</span>
+                <button class="sheet-close" onclick="closeModal('modal-transfer')">Cancelar</button>
+            </div>
+            <div style="padding:20px;">
+                <p style="color:#666; font-size:14px; text-align:center; margin-bottom:20px;">Registra un pago o
+                    transferencia directa entre dos viajeros.</p>
+
+                <div class="ios-list-group">
+                    <div class="ios-cell" onclick="openTransferPayerSelect('from')">
+                        <span class="cell-label">¿Quién paga?</span>
+                        <span class="cell-value text-blue" id="lbl-transfer-from">Seleccionar</span>
+                    </div>
+                    <div class="ios-cell" onclick="openTransferPayerSelect('to')">
+                        <span class="cell-label">¿A quién le paga?</span>
+                        <span class="cell-value text-blue" id="lbl-transfer-to">Seleccionar</span>
+                    </div>
+                    <div class="ios-cell">
+                        <span class="cell-label">Monto $</span>
+                        <input type="number" id="transfer-amount" class="cell-input" placeholder="0"
+                            style="text-align:right; font-weight:bold; font-size:20px;">
+                    </div>
+                    <div class="ios-cell">
+                        <span class="cell-label">Nota</span>
+                        <input type="text" id="transfer-note" class="cell-input" placeholder="Ej: Parte del vuelo">
+                    </div>
+                </div>
+
+                <button class="btn-large" onclick="saveTransfer()"
+                    style="background: linear-gradient(135deg, #5856D6, #AF52DE); color:white; margin-top:15px;">
+                    Confirmar Pago
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL SELECCIÓN PERSONA PARA TRANSFERENCIA -->
+    <div class="modal-backdrop" id="modal-transfer-payer">
+        <div class="sheet" style="height:50vh;">
+            <div class="sheet-header">
+                <span class="sheet-title">Seleccionar Persona</span>
+                <button class="sheet-close" onclick="closeModal('modal-transfer-payer')">Cancelar</button>
+            </div>
+            <div id="transfer-payer-list" style="padding:20px;"></div>
+        </div>
     </div>
 
     <!-- MODAL EDITAR GASTO -->
@@ -1587,6 +1642,72 @@
             document.getElementById('lbl-total-main').innerText = `$${total.toLocaleString()}`;
         }
 
+        // --- FUNCIONES DE TRANSFERENCIA ENTRE VIAJEROS ---
+        let transferFrom = "";
+        let transferTo = "";
+        let transferSelectContext = ""; // 'from' or 'to'
+
+        function openTransferModal() {
+            transferFrom = "";
+            transferTo = "";
+            document.getElementById('lbl-transfer-from').innerText = "Seleccionar";
+            document.getElementById('lbl-transfer-to').innerText = "Seleccionar";
+            document.getElementById('transfer-amount').value = "";
+            document.getElementById('transfer-note').value = "";
+            document.getElementById('modal-transfer').style.display = 'flex';
+        }
+
+        function openTransferPayerSelect(context) {
+            transferSelectContext = context;
+            const list = document.getElementById('transfer-payer-list');
+            list.innerHTML = "";
+            data.personas.forEach(p => {
+                list.innerHTML += `<div class="ios-cell" onclick="selectTransferPayer('${esc(p)}')" style="cursor:pointer;">
+                    <span class="cell-label">${esc(p)}</span>
+                    <span style="color:var(--ios-blue);">Elegir</span>
+                </div>`;
+            });
+            document.getElementById('modal-transfer-payer').style.display = 'flex';
+        }
+
+        function selectTransferPayer(name) {
+            closeModal('modal-transfer-payer');
+            if (transferSelectContext === 'from') {
+                transferFrom = name;
+                document.getElementById('lbl-transfer-from').innerText = name;
+            } else {
+                transferTo = name;
+                document.getElementById('lbl-transfer-to').innerText = name;
+            }
+        }
+
+        function saveTransfer() {
+            const amount = parseFloat(document.getElementById('transfer-amount').value);
+            const note = document.getElementById('transfer-note').value.trim();
+
+            if (!transferFrom) return toast("Selecciona quién paga.");
+            if (!transferTo) return toast("Selecciona a quién le paga.");
+            if (transferFrom === transferTo) return toast("No puedes pagarte a ti mismo.");
+            if (!amount || amount <= 0) return toast("Ingresa un monto válido.");
+
+            data.gastos.push({
+                id: Date.now(),
+                date: new Date().toISOString(),
+                payer: transferFrom,
+                transferTo: transferTo,
+                cat: { n: 'Transferencia', i: '💸' },
+                note: note || `Pago de ${transferFrom} a ${transferTo}`,
+                amount: amount,
+                img: null,
+                geo: null
+            });
+
+            save();
+            updateUI();
+            closeModal('modal-transfer');
+            toast(`Pago de $${amount.toLocaleString()} registrado: ${transferFrom} ➡ ${transferTo}`);
+        }
+
         // --- FUNCIONES DE EDICIÓN ---
         function openEditGasto(id) {
             const gasto = data.gastos.find(g => g.id === id);
@@ -1656,17 +1777,31 @@
             let pagado = {};
             let catTot = {};
 
+            // Separar transferencias de gastos compartidos
+            let transferencias = data.gastos.filter(g => g.cat && g.cat.n === 'Transferencia');
+            let gastosReales = data.gastos.filter(g => !(g.cat && g.cat.n === 'Transferencia'));
+
+            let totalReal = gastosReales.reduce((a, b) => a + b.amount, 0);
+
             data.personas.forEach(p => pagado[p] = 0);
-            data.gastos.forEach(g => {
+
+            // Sumar solo gastos reales al total por persona y por categoría
+            gastosReales.forEach(g => {
                 if (pagado[g.payer] !== undefined) pagado[g.payer] += g.amount;
                 catTot[g.cat.n] = (catTot[g.cat.n] || 0) + g.amount;
             });
 
+            // Aplicar transferencias: ajustar los saldos
+            transferencias.forEach(t => {
+                if (pagado[t.payer] !== undefined) pagado[t.payer] += t.amount;  // Quien pagó ya abonó más
+                if (pagado[t.transferTo] !== undefined) pagado[t.transferTo] -= t.amount; // Quien recibió ya le devolvieron
+            });
+
             document.getElementById("ticket-trip-name").innerText = data.viaje;
             document.getElementById("ticket-date").innerText = new Date().toLocaleDateString();
-            document.getElementById("ticket-total").innerText = `$${total.toLocaleString()}`;
+            document.getElementById("ticket-total").innerText = `$${totalReal.toLocaleString()}`;
 
-            const pp = data.personas.length ? total / data.personas.length : 0;
+            const pp = data.personas.length ? totalReal / data.personas.length : 0;
             document.getElementById("ticket-ppp").innerText = `p/p: $${pp.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
             // Top Magnate
