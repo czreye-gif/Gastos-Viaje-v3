@@ -1807,11 +1807,8 @@
                 catTot[g.cat.n] = (catTot[g.cat.n] || 0) + g.amount;
             });
 
-            // Aplicar transferencias: ajustar los saldos
-            transferencias.forEach(t => {
-                if (pagado[t.payer] !== undefined) pagado[t.payer] += t.amount;  // Quien pagó ya abonó más
-                if (pagado[t.transferTo] !== undefined) pagado[t.transferTo] -= t.amount; // Quien recibió ya le devolvieron
-            });
+            // Aplicar transferencias: NO modifican el "pagado", se aplican como abonos a deudas
+            // (Se procesan después del cálculo de deuda base)
 
             document.getElementById("ticket-trip-name").innerText = data.viaje;
             document.getElementById("ticket-date").innerText = new Date().toLocaleDateString();
@@ -1835,13 +1832,21 @@
                 catHtml += `<div class="ticket-cat-row"><span class="ticket-cat-name"><span class="ticket-cat-dot" style="background:${col}"></span>${c}</span><span>$${m.toLocaleString()}</span></div>`;
             });
             document.getElementById("ticket-categories").innerHTML = catHtml;
-            document.getElementById("ticket-donut-container").innerHTML = total > 0 ? generateDonutSVG(chartData) : "";
+            document.getElementById("ticket-donut-container").innerHTML = totalReal > 0 ? generateDonutSVG(chartData) : "";
 
-            // Deudas
-            let debts = [];
-            data.personas.forEach(p => debts.push({ p, bal: pagado[p] - pp }));
-            let debtors = debts.filter(x => x.bal < -1).sort((a, b) => a.bal - b.bal);
-            let creditors = debts.filter(x => x.bal > 1).sort((a, b) => b.bal - a.bal);
+            // Deudas: Calcular saldo base (sin transferencias)
+            let saldos = {};
+            data.personas.forEach(p => saldos[p] = pagado[p] - pp);
+
+            // Ahora aplicar transferencias como abonos directos
+            // César transfiere $X a Alejandra = César abonó $X (su saldo sube) y Alejandra recibió $X (su saldo baja)
+            transferencias.forEach(t => {
+                if (saldos[t.payer] !== undefined) saldos[t.payer] += t.amount;
+                if (saldos[t.transferTo] !== undefined) saldos[t.transferTo] -= t.amount;
+            });
+
+            let debtors = Object.entries(saldos).filter(([p, bal]) => bal < -1).map(([p, bal]) => ({ p, bal })).sort((a, b) => a.bal - b.bal);
+            let creditors = Object.entries(saldos).filter(([p, bal]) => bal > 1).map(([p, bal]) => ({ p, bal })).sort((a, b) => b.bal - a.bal);
 
             let htmlDebts = "";
             let i = 0, j = 0;
