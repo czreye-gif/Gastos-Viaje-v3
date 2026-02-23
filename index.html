@@ -1829,8 +1829,13 @@
                 catTot[g.cat.n] = (catTot[g.cat.n] || 0) + g.amount;
             });
 
-            // Aplicar transferencias: NO modifican el "pagado", se aplican como abonos a deudas
-            // (Se procesan después del cálculo de deuda base)
+            // Calcular contribución efectiva (gastos + transferencias enviadas - recibidas)
+            let efectivo = {};
+            data.personas.forEach(p => efectivo[p] = pagado[p]);
+            transferencias.forEach(t => {
+                if (efectivo[t.payer] !== undefined) efectivo[t.payer] += t.amount;
+                if (efectivo[t.transferTo] !== undefined) efectivo[t.transferTo] -= t.amount;
+            });
 
             document.getElementById("ticket-trip-name").innerText = data.viaje;
             document.getElementById("ticket-date").innerText = new Date().toLocaleDateString();
@@ -1839,9 +1844,9 @@
             const pp = data.personas.length ? totalReal / data.personas.length : 0;
             document.getElementById("ticket-ppp").innerText = `p/p: $${pp.toLocaleString(undefined, { maximumFractionDigits: 0 })}`;
 
-            // Top Magnate
+            // Top Magnate (basado en contribución efectiva)
             let topP = "Nadie"; let max = 0;
-            for (let p in pagado) { if (pagado[p] > max) { max = pagado[p]; topP = p; } }
+            for (let p in efectivo) { if (efectivo[p] > max) { max = efectivo[p]; topP = p; } }
             document.getElementById("ticket-magnate").innerText = max > 0 ? `${topP}` : "Nadie";
 
             // Chart & Cats
@@ -1856,16 +1861,9 @@
             document.getElementById("ticket-categories").innerHTML = catHtml;
             document.getElementById("ticket-donut-container").innerHTML = totalReal > 0 ? generateDonutSVG(chartData) : "";
 
-            // Deudas: Calcular saldo base (sin transferencias)
+            // Deudas: usar saldos basados en contribución efectiva
             let saldos = {};
-            data.personas.forEach(p => saldos[p] = pagado[p] - pp);
-
-            // Ahora aplicar transferencias como abonos directos
-            // César transfiere $X a Alejandra = César abonó $X (su saldo sube) y Alejandra recibió $X (su saldo baja)
-            transferencias.forEach(t => {
-                if (saldos[t.payer] !== undefined) saldos[t.payer] += t.amount;
-                if (saldos[t.transferTo] !== undefined) saldos[t.transferTo] -= t.amount;
-            });
+            data.personas.forEach(p => saldos[p] = efectivo[p] - pp);
 
             let debtors = Object.entries(saldos).filter(([p, bal]) => bal < -1).map(([p, bal]) => ({ p, bal })).sort((a, b) => a.bal - b.bal);
             let creditors = Object.entries(saldos).filter(([p, bal]) => bal > 1).map(([p, bal]) => ({ p, bal })).sort((a, b) => b.bal - a.bal);
@@ -1882,17 +1880,31 @@
             }
             document.getElementById("ticket-debts-container").innerHTML = htmlDebts || "<div style='text-align:center'>Cuentas al día</div>";
 
-            // Log
+            // Log (usando contribución efectiva en los encabezados)
             let logHtml = "";
             data.personas.forEach(p => {
-                logHtml += `<tr><td colspan="3"><div class="log-participant-header">${esc(p)} (Pagó: $${pagado[p].toLocaleString()})</div></td></tr>`;
-                data.gastos.filter(g => g.payer === p).forEach(x => {
+                logHtml += `<tr><td colspan="3"><div class="log-participant-header">${esc(p)} (Contribuyó: $${efectivo[p].toLocaleString()})</div></td></tr>`;
+
+                // Mostrar gastos directos
+                data.gastos.filter(g => g.payer === p && !(g.cat && g.cat.n === 'Transferencia')).forEach(x => {
                     let d = new Date(x.date);
                     let dStr = !isNaN(d) ? `${d.getDate()}/${d.getMonth() + 1}` : "";
-
                     const loc = x.geo && x.geo.text ? `<span class="log-location-text">📍 ${esc(x.geo.text)}</span>` : "";
-
                     logHtml += `<tr><td class="log-date">${dStr}</td><td class="log-desc"><strong>${x.cat.n}</strong><span>${esc(x.note)}</span>${loc}</td><td class="log-amount">$${parseFloat(x.amount).toLocaleString()}</td></tr>`;
+                });
+
+                // Mostrar transferencias enviadas por esta persona
+                data.gastos.filter(g => g.payer === p && g.cat && g.cat.n === 'Transferencia').forEach(x => {
+                    let d = new Date(x.date);
+                    let dStr = !isNaN(d) ? `${d.getDate()}/${d.getMonth() + 1}` : "";
+                    logHtml += `<tr><td class="log-date">${dStr}</td><td class="log-desc" style="color:#5856D6;"><strong>💸 Pago a ${esc(x.transferTo || '')}</strong><span>${esc(x.note)}</span></td><td class="log-amount" style="color:#5856D6;">$${parseFloat(x.amount).toLocaleString()}</td></tr>`;
+                });
+
+                // Mostrar transferencias recibidas por esta persona
+                data.gastos.filter(g => g.cat && g.cat.n === 'Transferencia' && g.transferTo === p).forEach(x => {
+                    let d = new Date(x.date);
+                    let dStr = !isNaN(d) ? `${d.getDate()}/${d.getMonth() + 1}` : "";
+                    logHtml += `<tr><td class="log-date">${dStr}</td><td class="log-desc" style="color:#34C759;"><strong>📥 Recibido de ${esc(x.payer)}</strong><span>${esc(x.note)}</span></td><td class="log-amount" style="color:#34C759;">-$${parseFloat(x.amount).toLocaleString()}</td></tr>`;
                 });
             });
             document.getElementById("ticket-audit-table").innerHTML = logHtml;
