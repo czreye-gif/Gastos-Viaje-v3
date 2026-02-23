@@ -1251,12 +1251,15 @@
                     let html = "";
                     files.forEach(f => {
                         html += `
-                        <div style="background:#F2F2F7; padding:15px; border-radius:12px; margin-bottom:10px; cursor:pointer; display:flex; justify-content:space-between; align-items:center;" onclick="recoverOpfsFile('${f.name}')">
-                            <div>
+                        <div style="background:#F2F2F7; padding:15px; border-radius:12px; margin-bottom:10px; display:flex; align-items:center;">
+                            <div style="flex:1; cursor:pointer;" onclick="recoverOpfsFile('${f.name}')">
                                 <div style="font-weight:bold; color:var(--ios-blue); font-size:16px; margin-bottom:4px;">${f.name.replace('.json', '')}</div>
                                 <div style="font-size:12px; color:#8E8E93;">Editado: ${f.date.toLocaleString()}</div>
                             </div>
-                            <div style="color:#d1d1d6; font-size:20px;">➔</div>
+                            <div style="display:flex; align-items:center; gap:12px;">
+                                <span onclick="event.stopPropagation(); downloadOpfsFile('${f.name}')" style="font-size:20px; cursor:pointer; opacity:0.4;" title="Descargar">⬇️</span>
+                                <span onclick="recoverOpfsFile('${f.name}')" style="color:#d1d1d6; font-size:20px; cursor:pointer;">➔</span>
+                            </div>
                         </div>`;
                     });
                     listContainer.innerHTML = html;
@@ -1266,6 +1269,25 @@
             } catch (e) {
                 console.error("Error leyendo OPFS:", e);
                 toast("No se pudo acceder a la memoria interna del navegador.");
+            }
+        }
+
+        // Descargar un archivo OPFS a la carpeta de Descargas del dispositivo
+        async function downloadOpfsFile(fileName) {
+            try {
+                const root = await navigator.storage.getDirectory();
+                const handle = await root.getFileHandle(fileName);
+                const file = await handle.getFile();
+                const url = URL.createObjectURL(file);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = fileName;
+                a.click();
+                URL.revokeObjectURL(url);
+                toast(`Archivo descargado: ${fileName}`);
+            } catch (e) {
+                console.error(e);
+                toast("Error al descargar el archivo.");
             }
         }
 
