@@ -1780,10 +1780,12 @@
 
             const idx = data.gastos.findIndex(g => g.id === editingId);
             if (idx !== -1) {
+                const original = data.gastos[idx];
                 data.gastos[idx] = {
                     id: editingId,
                     date: document.getElementById('txt-edit-fecha').value,
                     payer: tempEditPayer,
+                    transferTo: original.transferTo || null,
                     cat: tempEditCat,
                     note: document.getElementById('txt-edit-nota').value,
                     amount: amt,
